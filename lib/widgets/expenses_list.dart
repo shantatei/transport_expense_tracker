@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:transport_expense_tracker/models/expense.dart';
-import 'package:transport_expense_tracker/providers/all_expenses.dart';
+import 'package:transport_expense_tracker/screens/edit_expense_screen.dart';
+import 'package:transport_expense_tracker/services/firestore_service.dart';
 
 class ExpensesList extends StatefulWidget {
   @override
@@ -9,7 +10,9 @@ class ExpensesList extends StatefulWidget {
 }
 
 class _ExpensesListState extends State<ExpensesList> {
-  void removeItem(int i, AllExpenses myExpenses) {
+  FirestoreService fsService = FirestoreService();
+
+  void removeItem(String id) {
     showDialog<Null>(
         context: context,
         builder: (context) {
@@ -20,7 +23,7 @@ class _ExpensesListState extends State<ExpensesList> {
               TextButton(
                   onPressed: () {
                     setState(() {
-                      myExpenses.removeExpense(i);
+                      fsService.removeExpense(id);
                     });
                     Navigator.of(context).pop();
                   },
@@ -37,29 +40,37 @@ class _ExpensesListState extends State<ExpensesList> {
 
   @override
   Widget build(BuildContext context) {
-
-    AllExpenses expenseList = Provider.of<AllExpenses>(context);
-
-    return ListView.separated(
-      itemBuilder: (ctx, i) {
-        return ListTile(
-          leading: CircleAvatar(
-            child: Text(expenseList.getMyExpenses()[i].mode),
-          ),
-          title: Text(expenseList.getMyExpenses()[i].purpose),
-          subtitle: Text(expenseList.getMyExpenses()[i].cost.toStringAsFixed(2)),
-          trailing: IconButton(
-            icon: Icon(Icons.delete),
-            onPressed: () {
-              removeItem(i, expenseList);
-            },
-          ),
-        );
-      },
-      itemCount: expenseList.getMyExpenses().length,
-      separatorBuilder: (ctx, i) {
-        return Divider(height: 3, color: Colors.blueGrey);
-      },
-    );
+    return StreamBuilder<List<Expense>>(
+        stream: fsService.getExpenses(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting)
+            return Center(child: CircularProgressIndicator());
+          else {
+            return ListView.separated(
+              itemBuilder: (ctx, i) {
+                return ListTile(
+                  leading: CircleAvatar(
+                    child: Text(snapshot.data![i].mode),
+                  ),
+                  title: Text(snapshot.data![i].purpose),
+                  subtitle: Text(snapshot.data![i].cost.toStringAsFixed(2)),
+                  trailing: IconButton(
+                    icon: Icon(Icons.delete),
+                    onPressed: () {
+                      removeItem(snapshot.data![i].id);
+                    },
+                  ),
+                  onTap: () => Navigator.pushNamed(
+                      context, EditExpenseScreen.routeName,
+                      arguments: snapshot.data![i]),
+                );
+              },
+              itemCount: snapshot.data!.length,
+              separatorBuilder: (ctx, i) {
+                return Divider(height: 3, color: Colors.blueGrey);
+              },
+            );
+          }
+        });
   }
 }
