@@ -10,7 +10,9 @@ import 'package:transport_expense_tracker/services/firestore_service.dart';
 import 'package:transport_expense_tracker/widgets/app_drawer.dart';
 import 'package:transport_expense_tracker/widgets/expenses_list.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp();
   runApp(MyApp());
 }
 
